@@ -1,0 +1,99 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template to deploy resources for Vectra's AWS entity remediation solution.
+
+Parameters:
+  VectraRemediationLambdaNameParameter:
+    Type: String
+    Description: 'Name assigned to Vectra remediation AWS Lambda function'
+    Default: 'vectra-remediation-function'
+  VectraRemediationSnsTopicParameter:
+    Type: String
+    Description: 'Name assigned to Vectra remediation AWS SNS topic'
+    Default: 'vectra-remediation-sns-topic'
+  SnsMessageExternalIDParameter:
+    Type: String
+    MinLength: 9
+    Description: 'Extrenal ID to validate remediation SNS message. 9 characters long'
+Resources:
+    RemediationTopic:
+        Type: 'AWS::SNS::Topic'
+        Properties:
+            DisplayName: !Sub 'Vectra Entity Remediation Topic'
+            TopicName: !Ref VectraRemediationSnsTopicParameter
+            Subscription:
+                - Protocol: lambda
+                  Endpoint: !GetAtt RemediationLambda.Arn
+    RemediationLambdaInvokePermission:
+        Type: 'AWS::Lambda::Permission'
+        Properties:
+          Action: 'lambda:InvokeFunction'
+          FunctionName: !Ref RemediationLambda
+          Principal: sns.amazonaws.com 
+    RemediationTopicPolicy:
+        Type: 'AWS::SNS::TopicPolicy'
+        Properties:
+            Topics:
+                - !Ref RemediationTopic
+            PolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                - Effect: Allow
+                  Action: 'sns:Publish'
+                  Resource: !Ref RemediationTopic
+                  Principal:
+                    AWS: '*'
+                  Condition:
+                    ArnLike:
+                        AWS:SourceArn: !Sub 'arn:aws:*:*:${AWS::AccountId}:*'
+    RemediationLambdaExecutionRole:
+        Type: 'AWS::IAM::Role'
+        Properties:
+            RoleName: 'VectraRemediationLambdaExecutionRole'
+            AssumeRolePolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Effect: Allow
+                      Principal:
+                        Service:
+                          - lambda.amazonaws.com
+                      Action:
+                        - sts:AssumeRole
+            ManagedPolicyArns:
+                - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+            Policies:
+              - PolicyName: VectraRemediationLambdaCrossAccountAccess
+                PolicyDocument: 
+                    Version: '2012-10-17'
+                    Statement:
+                      - Effect: Allow
+                        Action:
+                         - sts:AssumeRole
+                        Resource: '*'
+    RemediationLambda:
+        Type: 'AWS::Lambda::Function'
+        Properties:
+            FunctionName: !Ref VectraRemediationLambdaNameParameter
+            Handler: lambda_function.lambda_handler
+            Runtime: python3.9
+            Role: !Sub ${RemediationLambdaExecutionRole.Arn}
+            Code:
+                S3Bucket: "vectra-entity-remediation-integration"
+                S3Key: "remediation_lambda_handler.zip"
+            Description: ''
+            MemorySize: 128
+            Timeout: 60
+            Environment:
+              Variables:
+                SNS_MESSAGE_EXTERNAL_ID: !Ref SnsMessageExternalIDParameter
+                VectraRoleForRemediationLambdaCrossAccountAccess: 'VectraRoleForRemediationLambdaCrossAccountAccess'
+
+Outputs:
+  RemediationTopicName:
+    Description: The Vectra remediation SNS topic name
+    Value: !GetAtt RemediationTopic.TopicName
+  RemediationLambdaName:
+    Description: The Vectra remediation Lambda function name
+    Value: !Ref VectraRemediationLambdaNameParameter
+  RemediationLambdaExecutionRoleName:
+    Description: The Vectra remediation Lambda execution role name
+    Value: !GetAtt RemediationLambdaExecutionRole.Arn

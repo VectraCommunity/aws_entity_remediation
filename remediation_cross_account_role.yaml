@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template to deploy resources for Vectra's AWS entity remediation solution - AWS cross account access.
+
+Parameters:
+  VectraRemediationLambdaHostAccount:
+    Type: Number
+    Description: "AWS account number for Vectra's remediation AWS Lambda function"
+
+Resources:
+  VectraRoleForRemediationLambda:
+        Type: 'AWS::IAM::Role'
+        Properties:
+            RoleName: 'VectraRoleForRemediationLambdaFunction'
+            AssumeRolePolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Effect: Allow
+                      Principal:
+                        AWS:
+                          - !Sub "arn:aws:iam::${VectraRemediationLambdaHostAccount}:role/VectraRemediationLambdaExecutionRole"
+                      Action:
+                        - sts:AssumeRole
+            Policies:
+              - PolicyName: VectraRolePolicyForEntityRemediationLambdaFunction
+                PolicyDocument: 
+                    Version: '2012-10-17'
+                    Statement:
+                      - Effect: Allow
+                        Action:
+                          - ec2:AuthorizeSecurityGroupEgress 
+                          - ec2:AuthorizeSecurityGroupIngress 
+                          - ec2:RevokeSecurityGroupIngress 
+                          - ec2:RevokeSecurityGroupEgress 
+                          - ec2:DisassociateIamInstanceProfile 
+                          - lambda:GetFunctionConfiguration 
+                          - lambda:PutFunctionConcurrency
+                        Resource: 
+                          - !Sub "arn:aws:lambda:*:${AWS::AccountId}:function:*"
+                          - !Sub "arn:aws:ec2:*:${AWS::AccountId}:security-group/*"
+                          - !Sub "arn:aws:ec2:*:${AWS::AccountId}:security-group-rule/*"
+                          - !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
+                      - Effect: Allow
+                        Action: 
+                          - ec2:DescribeInstances 
+                          - ec2:DescribeIamInstanceProfileAssociations 
+                          - ec2:CreateSecurityGroup 
+                          - ec2:ModifyInstanceAttribute 
+                          - ec2:DescribeSecurityGroups
+                        Resource: '*'
+                      - Effect: Allow
+                        Action:
+                          - iam:AttachUserPolicy
+                          - iam:AttachRolePolicy
+                        Resource:
+                          - !Sub "arn:aws:iam::${AWS::AccountId}:role/*"
+                          - !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+
+
