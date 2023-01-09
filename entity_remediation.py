@@ -4,9 +4,16 @@ import os
 
 def lambda_handler(event, context):
     try:
-        arn = event['Records'][0]['Sns']['MessageAttributes']['ARN']['Value']
+        arn = event['Records'][0]['Sns']['MessageAttributes']['Arn']['Value']
+        external_id = event['Records'][0]['Sns']['MessageAttributes']['ExternalId']['Value']
+
+        if external_id != os.environ['SNSMessageExternalId']:
+            raise Exception(f"Remediation SNS ExteranlId: {external_id} mismatch")
+        
+        _audit_remediation("Started", arn) 
+
         entity = _parse_message(arn)
-        sts = _assume_role(entity['account_id'])
+        sts = _assume_role(entity['entity_account_id'])
 
         if(entity['entity_type'] == 'lambda'):
             _remediate_lambda(entity, sts)
@@ -16,9 +23,13 @@ def lambda_handler(event, context):
             _remediate_ec2(entity, sts)
         elif entity['entity_type'] == 'role':
             _remediate_role(entity, sts)
+     
+        _audit_remediation("Complete", arn)
         
-    except  Exception as e:
+    except Exception as e:
         print(e)
+        message = f"{arn} - with error: {e}" 
+        _audit_remediation("Failed", message)
         raise e
 
     return {
@@ -48,9 +59,11 @@ def _parse_message(arn):
     entity = {
         'entity_type':entity_type,
         'entity_value': entity_value,
-        'entity_account': entity_account,
+        'entity_account_id': entity_account,
         'entity_region' : entity_region
     }
+
+    return entity
 
 def _remediate_lambda(entity, sts):
     p_arn = 'arn:aws:iam::aws:policy/AWSDenyAll'
@@ -149,9 +162,9 @@ def _remediate_ec2(entity, sts):
             for associatedIamRole in IamInstanceProfileAssociations:
                 AssociationId = associatedIamRole['AssociationId']
                 IamInstanceProfileArn = associatedIamRole['IamInstanceProfile']['Arn']
-                print("Current IAM Instance Profile:", IamInstanceProfileArn)
+                print("Current IAM Instance Profile: ", IamInstanceProfileArn)
                 client.disassociate_iam_instance_profile(AssociationId=AssociationId)
-                print("Disassociated IAM Role from ", entity['entity_value'])
+                print("Disassociated IAM Role for EC2 Instance: ", entity['entity_value'])
 
         vpcId = _remediate_ec2_identifyInstanceVpcId(entity['entity_value'], client)
 
@@ -203,3 +216,21 @@ def _remediate_ec2_modifyInstanceAttribute(instanceId,securityGroupId, client):
     client.modify_instance_attribute(
         Groups=[securityGroupId],
         InstanceId=instanceId)
+
+def _audit_remediation(status, message):
+    print(message)
+    sns_client = boto3.client("sns")
+    sns_topic = os.environ['VectraAuditRemediationSnsTopic']
+    topic_arn = sns_topic
+    message = f"Vectra entity remediation status: {status}. Details: {message}"
+    subject = 'Vectra Remediation Notification'
+   
+    try:
+        sns_client.publish(
+            TopicArn=topic_arn,
+            Message=message,
+            Subject=subject
+        )
+    except Exception as e:
+        print(e)
+        raise e
