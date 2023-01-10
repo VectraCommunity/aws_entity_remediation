@@ -17,7 +17,7 @@ def lambda_handler(event, context):
 
         if(entity['entity_type'] == 'lambda'):
             _remediate_lambda(entity, sts)
-        elif entity['entity_type'] == 'iam':
+        elif entity['entity_type'] == 'user':
             _remediate_iam(entity, sts)
         elif entity['entity_type'] == 'ec2':
             _remediate_ec2(entity, sts)
@@ -30,8 +30,7 @@ def lambda_handler(event, context):
         print(e)
         message = f"{arn} - with error: {e}" 
         _audit_remediation("Failed", message)
-        raise e
-
+      
     return {
         "statusCode": 200
     }
@@ -87,11 +86,7 @@ def _remediate_lambda(entity, sts):
     except  Exception as e:
         print(e)
         raise e
-
-    return {
-        "statusCode": 200
-    }
-
+    
 def _remediate_iam(entity, sts):
     p_arn = 'arn:aws:iam::aws:policy/AWSDenyAll'
     try:
@@ -105,9 +100,6 @@ def _remediate_iam(entity, sts):
         print(e)
         raise e
 
-    return {
-        "statusCode": 200
-    }
 
 def _remediate_role(entity, sts):
     p_arn = 'arn:aws:iam::aws:policy/AWSDenyAll'
