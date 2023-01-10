@@ -14,6 +14,10 @@ Parameters:
     Type: String
     Description: 'Name assigned to Vectra remediation audit AWS SNS topic'
     Default: 'vectra-remediation-audit-sns-topic'
+  VectraRemediationFailureSnsTopicParameter:
+    Type: String
+    Description: 'Name assigned to Vectra remediation failure AWS SNS topic'
+    Default: 'vectra-remediation-failure-sns-topic'
   SnsMessageExternalIDParameter:
     Type: String
     MinLength: 9
@@ -22,6 +26,10 @@ Parameters:
     Type: String
     AllowedPattern: '[^@]+@[^@]+\.[^@]+'
     Description: 'Email address to receive remediation notifications'
+  VectraRemediationFailureSnsTopicSubscriptionEmailParameter:
+    Type: String
+    AllowedPattern: '[^@]+@[^@]+\.[^@]+'
+    Description: 'Email address to receive remediation failure notifications'
 Resources:
     RemediationTopic:
         Type: 'AWS::SNS::Topic'
@@ -34,14 +42,25 @@ Resources:
     RemediationAuditTopic:
         Type: 'AWS::SNS::Topic'
         Properties:
-            DisplayName: !Sub 'Vectra Entity Remediation Audit Topic'
+            DisplayName: !Sub 'Vectra Entity Remediation Audit'
             TopicName: !Ref VectraRemediationAuditSnsTopicParameter
+    RemediationFailureTopic:
+        Type: 'AWS::SNS::Topic'
+        Properties:
+            DisplayName: !Sub 'Vectra Entity Remediation Failure'
+            TopicName: !Ref VectraRemediationFailureSnsTopicParameter
     RemediationAuditTopicSubscription:
       Type: AWS::SNS::Subscription
       Properties:
         Endpoint: !Ref VectraRemediationAuditSnsTopicSubscriptionEmailParameter
         Protocol: email
         TopicArn: !Ref 'RemediationAuditTopic'
+    RemediationFailureTopicSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        Endpoint: !Ref VectraRemediationFailureSnsTopicSubscriptionEmailParameter
+        Protocol: email
+        TopicArn: !Ref 'RemediationFailureTopic'
     RemediationLambdaInvokePermission:
         Type: 'AWS::Lambda::Permission'
         Properties:
@@ -91,7 +110,9 @@ Resources:
                       - Effect: Allow
                         Action:
                           - sns:Publish
-                        Resource: !Sub ${RemediationAuditTopic.TopicArn}
+                        Resource: 
+                          - !Sub ${RemediationAuditTopic.TopicArn}
+                          - !Sub ${RemediationFailureTopic.TopicArn}
     RemediationAuditTopicPolicy:
         Type: 'AWS::SNS::TopicPolicy'
         Properties:
@@ -102,7 +123,23 @@ Resources:
                 Statement:
                 - Effect: Allow
                   Action: 'sns:Publish'
-                  Resource: !Ref RemediationTopic
+                  Resource: !Ref RemediationAuditTopic
+                  Principal:
+                    Service: lambda.amazonaws.com
+                  Condition:
+                    ArnLike:
+                        AWS:SourceArn: !Sub ${RemediationLambdaExecutionRole.Arn}
+    RemediationFailureTopicPolicy:
+        Type: 'AWS::SNS::TopicPolicy'
+        Properties:
+            Topics:
+                - !Ref RemediationFailureTopic
+            PolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                - Effect: Allow
+                  Action: 'sns:Publish'
+                  Resource: !Ref RemediationFailureTopic
                   Principal:
                     Service: lambda.amazonaws.com
                   Condition:
@@ -126,7 +163,8 @@ Resources:
                 SNSMessageExternalId: !Ref SnsMessageExternalIDParameter
                 VectraRoleForRemediationLambda: 'VectraRoleForRemediationLambdaFunction'
                 VectraAuditRemediationSnsTopic:  !GetAtt RemediationAuditTopic.TopicArn
-    
+            DeadLetterConfig:
+              TargetArn: !GetAtt RemediationFailureTopic.TopicArn
 
 Outputs:
   RemediationTopicName:
@@ -141,3 +179,6 @@ Outputs:
   RemediationAuditRemediationSnsTopicName:
     Description: The Vectra remediation audit SNS topic name
     Value: !GetAtt RemediationAuditTopic.TopicName
+  RemediationAuditRemediationSnsTopicName:
+    Description: The Vectra remediation failure SNS topic name
+    Value: !GetAtt RemediationFailureTopic.TopicName
