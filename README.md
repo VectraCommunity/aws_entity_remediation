@@ -18,25 +18,24 @@ Before you begin, ensure you have met the following requirements:
 
 
 
-## Installing <project_name>
-
+## Installing AWSEntityIncidentResponse
 To install AWSEntityIncidentResponse, follow these steps:
 
 Deploy the Incident Response solution AWS resources:
-```
-To get started, download the CloudFormation template from [Amazon S3](https://vectra-entity-remediation-integration.s3.amazonaws.com/remediation.yaml). Alternatively, you can launch the CloudFormation template by selecting the following [Launch Stack](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://vectra-entity-remediation-integration.s3.amazonaws.com/remediation.yaml&stackName=VectraAWSEntityIncidentResponse) link.
-```
+
+To get started, download the CloudFormation template from [Amazon S3](https://vectra-entity-remediation-integration.s3.amazonaws.com/remediation.yaml)
+. Alternatively, you can launch the CloudFormation template by selecting the following [Launch Stack](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://vectra-entity-remediation-integration.s3.amazonaws.com/remediation.yaml&stackName=VectraAWSEntityIncidentResponse) link.
+
+
 
 Deploy the Incident Response solution AWS cross-account IAM Role (only if using multiple AWS accounts):
-```
+ 
 Download the CloudFormation template from [Amazon S3](https://vectra-entity-remediation-integration.s3.amazonaws.com/remediation-cross-account-role.yaml). Alternatively, you can launch the CloudFormation template by selecting the following [Launch Stack](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://vectra-entity-remediation-integration.s3.amazonaws.com/remediation-cross-account-role.yaml) link
-```
 
 ## High Level Architecture overview
 
 [High Level Architecture](HighLeveArchitecture.PNG)
 
-965/l 
 
 ## Using <project_name>
 
