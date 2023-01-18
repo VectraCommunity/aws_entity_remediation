@@ -100,7 +100,6 @@ def _remediate_iam(entity, sts):
         print(e)
         raise e
 
-
 def _remediate_role(entity, sts):
     p_arn = 'arn:aws:iam::aws:policy/AWSDenyAll'
     

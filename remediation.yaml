@@ -2,31 +2,31 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: Template to deploy resources for Vectra's AWS entity remediation solution.
 
 Parameters:
-  VectraRemediationLambdaNameParameter:
+  VectraRemediationLambdaName:
     Type: String
     Description: 'Name assigned to Vectra remediation AWS Lambda function'
     Default: 'vectra-remediation-function'
-  VectraRemediationSnsTopicParameter:
+  VectraRemediationSnsTopic:
     Type: String
     Description: 'Name assigned to Vectra remediation AWS SNS topic'
     Default: 'vectra-remediation-sns-topic'
-  VectraRemediationAuditSnsTopicParameter:
+  VectraRemediationAuditSnsTopic:
     Type: String
     Description: 'Name assigned to Vectra remediation audit AWS SNS topic'
     Default: 'vectra-remediation-audit-sns-topic'
-  VectraRemediationFailureSnsTopicParameter:
+  VectraRemediationFailureSnsTopic:
     Type: String
     Description: 'Name assigned to Vectra remediation failure AWS SNS topic'
     Default: 'vectra-remediation-failure-sns-topic'
-  SnsMessageExternalIDParameter:
+  SnsMessageExternalID:
     Type: String
     MinLength: 9
     Description: 'Extrenal ID to validate remediation SNS message. 9 characters long'
-  VectraRemediationAuditSnsTopicSubscriptionEmailParameter:
+  VectraRemediationAuditSnsTopicSubscriptionEmail:
     Type: String
     AllowedPattern: '[^@]+@[^@]+\.[^@]+'
     Description: 'Email address to receive remediation notifications'
-  VectraRemediationFailureSnsTopicSubscriptionEmailParameter:
+  VectraRemediationFailureSnsTopicSubscriptionEmail:
     Type: String
     AllowedPattern: '[^@]+@[^@]+\.[^@]+'
     Description: 'Email address to receive remediation failure notifications'
@@ -35,7 +35,7 @@ Resources:
         Type: 'AWS::SNS::Topic'
         Properties:
             DisplayName: !Sub 'Vectra Entity Remediation Topic'
-            TopicName: !Ref VectraRemediationSnsTopicParameter
+            TopicName: !Ref VectraRemediationSnsTopic
             Subscription:
                 - Protocol: lambda
                   Endpoint: !GetAtt RemediationLambda.Arn
@@ -43,22 +43,22 @@ Resources:
         Type: 'AWS::SNS::Topic'
         Properties:
             DisplayName: !Sub 'Vectra Entity Remediation Audit'
-            TopicName: !Ref VectraRemediationAuditSnsTopicParameter
+            TopicName: !Ref VectraRemediationAuditSnsTopic
     RemediationFailureTopic:
         Type: 'AWS::SNS::Topic'
         Properties:
             DisplayName: !Sub 'Vectra Entity Remediation Failure'
-            TopicName: !Ref VectraRemediationFailureSnsTopicParameter
+            TopicName: !Ref VectraRemediationFailureSnsTopic
     RemediationAuditTopicSubscription:
       Type: AWS::SNS::Subscription
       Properties:
-        Endpoint: !Ref VectraRemediationAuditSnsTopicSubscriptionEmailParameter
+        Endpoint: !Ref VectraRemediationAuditSnsTopicSubscriptionEmail
         Protocol: email
         TopicArn: !Ref 'RemediationAuditTopic'
     RemediationFailureTopicSubscription:
       Type: AWS::SNS::Subscription
       Properties:
-        Endpoint: !Ref VectraRemediationFailureSnsTopicSubscriptionEmailParameter
+        Endpoint: !Ref VectraRemediationFailureSnsTopicSubscriptionEmail
         Protocol: email
         TopicArn: !Ref 'RemediationFailureTopic'
     RemediationLambdaInvokePermission:
@@ -148,7 +148,7 @@ Resources:
     RemediationLambda:
         Type: 'AWS::Lambda::Function'
         Properties:
-            FunctionName: !Ref VectraRemediationLambdaNameParameter
+            FunctionName: !Ref VectraRemediationLambdaName
             Handler: lambda_function.lambda_handler
             Runtime: python3.9
             Role: !Sub ${RemediationLambdaExecutionRole.Arn}
@@ -160,19 +160,65 @@ Resources:
             Timeout: 60
             Environment:
               Variables:
-                SNSMessageExternalId: !Ref SnsMessageExternalIDParameter
+                SNSMessageExternalId: !Ref SnsMessageExternalID
                 VectraRoleForRemediationLambda: 'VectraRoleForRemediationLambdaFunction'
                 VectraAuditRemediationSnsTopic:  !GetAtt RemediationAuditTopic.TopicArn
             DeadLetterConfig:
               TargetArn: !GetAtt RemediationFailureTopic.TopicArn
-
+    VectraRoleForRemediationLambda:
+        Type: 'AWS::IAM::Role'
+        Properties:
+            RoleName: 'VectraRoleForRemediationLambdaFunction'
+            AssumeRolePolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Effect: Allow
+                      Principal:
+                        AWS:
+                          - !Sub "arn:aws:iam::${AWS::AccountId}:role/VectraRemediationLambdaExecutionRole"
+                      Action:
+                        - sts:AssumeRole
+            Policies:
+              - PolicyName: VectraRolePolicyForEntityRemediationLambdaFunction
+                PolicyDocument: 
+                    Version: '2012-10-17'
+                    Statement:
+                      - Effect: Allow
+                        Action:
+                          - ec2:AuthorizeSecurityGroupEgress 
+                          - ec2:AuthorizeSecurityGroupIngress 
+                          - ec2:RevokeSecurityGroupIngress 
+                          - ec2:RevokeSecurityGroupEgress 
+                          - ec2:DisassociateIamInstanceProfile 
+                          - lambda:GetFunctionConfiguration 
+                          - lambda:PutFunctionConcurrency
+                        Resource: 
+                          - !Sub "arn:aws:lambda:*:${AWS::AccountId}:function:*"
+                          - !Sub "arn:aws:ec2:*:${AWS::AccountId}:security-group/*"
+                          - !Sub "arn:aws:ec2:*:${AWS::AccountId}:security-group-rule/*"
+                          - !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
+                      - Effect: Allow
+                        Action: 
+                          - ec2:DescribeInstances 
+                          - ec2:DescribeIamInstanceProfileAssociations 
+                          - ec2:CreateSecurityGroup 
+                          - ec2:ModifyInstanceAttribute 
+                          - ec2:DescribeSecurityGroups
+                        Resource: '*'
+                      - Effect: Allow
+                        Action:
+                          - iam:AttachUserPolicy
+                          - iam:AttachRolePolicy
+                        Resource:
+                          - !Sub "arn:aws:iam::${AWS::AccountId}:role/*"
+                          - !Sub "arn:aws:iam::${AWS::AccountId}:user/*
 Outputs:
   RemediationTopicName:
     Description: The Vectra remediation SNS topic name
     Value: !GetAtt RemediationTopic.TopicName
   RemediationLambdaName:
     Description: The Vectra remediation Lambda function name
-    Value: !Ref VectraRemediationLambdaNameParameter
+    Value: !Ref VectraRemediationLambdaName
   RemediationLambdaExecutionRoleArn:
     Description: The Vectra remediation Lambda execution role arn
     Value: !GetAtt RemediationLambdaExecutionRole.Arn
@@ -182,3 +228,6 @@ Outputs:
   RemediationAuditRemediationSnsTopicName:
     Description: The Vectra remediation failure SNS topic name
     Value: !GetAtt RemediationFailureTopic.TopicName
+  VectraRoleForRemediationLambdaName:
+    Description: The Vectra IAM Role assumed by Remediation Lambda 
+    Value: 'VectraRoleForRemediationLambdaFunction'
