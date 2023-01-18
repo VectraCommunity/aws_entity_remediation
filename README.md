@@ -21,59 +21,77 @@ Before you begin, ensure you have met the following requirements:
 ## Installing AWSEntityIncidentResponse
 To install AWSEntityIncidentResponse, follow these steps:
 
-Deploy the Incident Response solution AWS resources:
+#### Deploy the Incident Response solution AWS resources:
 
 To get started, download the CloudFormation template from [Amazon S3](https://vectra-entity-remediation-integration.s3.amazonaws.com/remediation.yaml)
 . Alternatively, you can launch the CloudFormation template by selecting the following [Launch Stack](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://vectra-entity-remediation-integration.s3.amazonaws.com/remediation.yaml&stackName=VectraAWSEntityIncidentResponse) link.
 
 
-
-Deploy the Incident Response solution AWS cross-account IAM Role (only if using multiple AWS accounts):
+#### Deploy the Incident Response solution AWS cross-account IAM Role (only if using multiple AWS accounts):
  
-Download the CloudFormation template from [Amazon S3](https://vectra-entity-remediation-integration.s3.amazonaws.com/remediation-cross-account-role.yaml). Alternatively, you can launch the CloudFormation template by selecting the following [Launch Stack](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://vectra-entity-remediation-integration.s3.amazonaws.com/remediation-cross-account-role.yaml) link
-
-## High Level Architecture overview
-
-[High Level Architecture](HighLeveArchitecture.PNG)
+Download the CloudFormation template from [Amazon S3](https://vectra-entity-remediation-integration.s3.amazonaws.com/remediation-cross-account-role.yaml). Alternatively, you can launch the CloudFormation template by selecting the following [Launch Stack](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://vectra-entity-remediation-integration.s3.amazonaws.com/remediation-cross-account-role.yaml&stackName=VectraAWSEntityIncidentResponse) link
 
 
-## Using <project_name>
 
-To use <project_name>, follow these steps:
 
+## Architecture overview
+
+#### High level overview
+![High Level](HighLeveArchitecture.PNG)
+
+#### Detail level overview
+![Detial Level](DetailLevelArchitecure.PNG)
+
+
+
+## Using AWSEntityIncidentResponse (Testing locally)
+
+To use AWSEntityIncidentResponse, follow these steps:
+
+### Set AWS CLI Environment variables
 ```
-<usage_example>
+export AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+export AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+export AWS_DEFAULT_REGION=us-east-1
 ```
 
-Add run commands and examples you think users will find useful. Provide an options reference for bonus points!
+### Publish EC2 instance for incident response
+```
+./publish_entity_for_incident_response.py \
+    --sns-topic-arn=arn:aws:sns:us-east-1:888888888888:vectra-remediation-sns-topic \
+    --entity_arn=arn:aws:ec2:us-east-1:888888888888:instance/i-0d205360XXXXX9a9XXX \
+    --external_id=123xyz*&^
+```
 
-## Contributing to <project_name>
-<!--- If your README is long or you have some specific process or steps you want contributors to follow, consider creating a separate CONTRIBUTING.md file--->
-To contribute to <project_name>, follow these steps:
+### Publish IAM user for incident response
+```
+./publish_entity_for_incident_response.py \
+    --sns-topic-arn=arn:aws:sns:us-east-1:888888888888:vectra-remediation-sns-topic \
+    --entity_arn=arn:aws:iam::888888888888:user/user1 \
+    --external_id=123xyz*&^
+```
 
-1. Fork this repository.
-2. Create a branch: `git checkout -b <branch_name>`.
-3. Make your changes and commit them: `git commit -m '<commit_message>'`
-4. Push to the original branch: `git push origin <project_name>/<location>`
-5. Create the pull request.
+### Publish IAM role for incident response
+```
+./publish_entity_for_incident_response.py \
+    --sns-topic-arn=arn:aws:sns:us-east-1:888888888888:vectra-remediation-sns-topic \
+    --entity_arn=arn:aws:iam::888888888888:role/service-role/role1 \
+    --external_id=123xyz*&^
+```
 
-Alternatively see the GitHub documentation on [creating a pull request](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request).
+### Publish IAM role for incident response
+```
+./publish_entity_for_incident_response.py \
+    --sns-topic-arn=arn:aws:sns:us-east-1:888888888888:vectra-remediation-sns-topic \
+    --entity_arn=arn:aws:lambda:us-east-1:888888888888:function:function1 \
+    --external_id=123xyz*&^
+```
 
-## Contributors
+## Using AWSEntityIncidentResponse (From the AWS console)
 
-Thanks to the following people who have contributed to this project:
+To use AWSEntityIncidentResponse, follow these steps:
 
-* [@scottydocs](https://github.com/scottydocs) 📖
-* [@cainwatson](https://github.com/cainwatson) 🐛
-* [@calchuchesta](https://github.com/calchuchesta) 🐛
+![AWS Console](AWSConsole.png)
 
-You might want to consider using something like the [All Contributors](https://github.com/all-contributors/all-contributors) specification and its [emoji key](https://allcontributors.org/docs/en/emoji-key).
-
-## Contact
-
-If you want to contact me you can reach me at <your_email@address.com>.
-
-## License
-<!--- If you're not sure which open license to use see https://choosealicense.com/--->
-
-This project uses the following license: [<license_name>](<link>).
+## Blog post
+For walkthroughs and full documentation, please visit the AWSEntityIncidentResponse [blog](https://medium.com/@alex.groyz_50998/aws-incident-response-on-the-control-plane-and-network-3ba95b0a8513).

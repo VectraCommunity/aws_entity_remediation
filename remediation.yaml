@@ -175,7 +175,7 @@ Resources:
                     - Effect: Allow
                       Principal:
                         AWS:
-                          - !Sub "arn:aws:iam::${AWS::AccountId}:role/VectraRemediationLambdaExecutionRole"
+                          - !Sub ${RemediationLambdaExecutionRole.Arn}
                       Action:
                         - sts:AssumeRole
             Policies:
@@ -211,7 +211,7 @@ Resources:
                           - iam:AttachRolePolicy
                         Resource:
                           - !Sub "arn:aws:iam::${AWS::AccountId}:role/*"
-                          - !Sub "arn:aws:iam::${AWS::AccountId}:user/*
+                          - !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
 Outputs:
   RemediationTopicName:
     Description: The Vectra remediation SNS topic name
