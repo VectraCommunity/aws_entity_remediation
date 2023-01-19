@@ -37,10 +37,10 @@ Download the CloudFormation template from [Amazon S3](https://vectra-entity-reme
 ## Architecture overview
 
 #### High level overview
-![High Level](HighLeveArchitecture.PNG)
+![High Level](https://vectra-entity-remediation-integration.s3.amazonaws.com/HighLeveArchitecture.PNG)
 
 #### Detail level overview
-![Detial Level](DetailLevelArchitecure.PNG)
+![Detial Level](https://vectra-entity-remediation-integration.s3.amazonaws.com/DetailLevelArchitecure.PNG)
 
 
 
@@ -91,7 +91,7 @@ export AWS_DEFAULT_REGION=us-east-1
 
 To use AWSEntityIncidentResponse, follow these steps:
 
-![AWS Console](AWSConsole.png)
+![AWS Console](https://vectra-entity-remediation-integration.s3.amazonaws.com/AWSConsole.png)
 
 ## Blog post
 For walkthroughs and full documentation, please visit the AWSEntityIncidentResponse [blog](https://medium.com/@alex.groyz_50998/aws-incident-response-on-the-control-plane-and-network-3ba95b0a8513).
