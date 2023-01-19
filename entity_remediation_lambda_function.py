@@ -79,8 +79,8 @@ def _remediate_lambda(entity, sts):
             aws_secret_access_key = sts['aws_secret_access_key'],
             aws_session_token = sts['aws_session_token']
         )
-        response = client_iam.attach_role_policy(PolicyArn=p_arn, RoleName=role)
-
+        
+        client_iam.attach_role_policy(PolicyArn=p_arn, RoleName=role)
         client_lambda.put_function_concurrency( FunctionName=entity['entity_value'],ReservedConcurrentExecutions=0)
 
     except  Exception as e:

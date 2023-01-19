@@ -93,5 +93,30 @@ To use AWSEntityIncidentResponse, follow these steps:
 
 ![AWS Console](https://vectra-entity-remediation-integration.s3.amazonaws.com/AWSConsole.png)
 
+## Deploy the solution
+
+To get started follow the instructions in the Installing AWSEntityIncidentResponse section.
+
+### Deploy the CloudFormation stack Incident Response solution AWS resources
+You can leave the default values for the stack as long as there aren’t any resources provisioned already with the same name. Otherwise, the naming convention is fully customizable from this screen, and you can modify the parameters as you see fit. 
+
+The SnsMessageExternalId Parameter does not have a default. This value is user-defined and static. Add this id to the SNS message attribute when publishing an SNS message with entity details. 
+
+The VectraRemediationAuditSnsTopicSubscriptionEmail and VectraRemediationFailureSnsTopicSubscriptionEmail Parameters also do not have a default. These email values will be used to send Incident Response notification emails. When deploying the AWS CloudFormationstack, email address inputs will receive one-time notifications from subscribing to the newly created SNS topics. If no action is taken on the requests, then Incident Response notification emails will not reach the recipients. 
+
+![CFNMain](https://vectra-entity-remediation-integration.s3.amazonaws.com/cfn-main.PNG)
+
+After you complete these steps, the following resources will be provisioned:
+
+![CFNResources](https://vectra-entity-remediation-integration.s3.amazonaws.com/cfn-resources.PNG)
+
+If you are using one AWS account, then this template is all you need. However, you will need to deploy two templates if you have a multi-account setup and want a cross-account Incident Response solution. Deploying the first template in your AWS security account will host Incident Response resources. The second template will create a cross-account IAM Role in the other accounts you like the solution to cover.
+
+Set the VectraRemediationLambdaHostAccount Parameter with the AWS account that hosts the Incident Response resources deployed by the first CloudFormation template. 
+![CFNCrossAccount](https://vectra-entity-remediation-integration.s3.amazonaws.com/cfn-cross-account.PNG)
+
+This stack will only create one resource. And AWS IAM Role that will give the Incident Response Lambda cross-account assume role permissions. 
+![CFNCrossAccountResources](https://vectra-entity-remediation-integration.s3.amazonaws.com/cfn-resourcs-cross-account.PNG)
+
 ## Blog post
 For walkthroughs and full documentation, please visit the AWSEntityIncidentResponse [blog](https://medium.com/@alex.groyz_50998/aws-incident-response-on-the-control-plane-and-network-3ba95b0a8513).
