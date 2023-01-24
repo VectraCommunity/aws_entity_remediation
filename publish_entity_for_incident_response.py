@@ -1,5 +1,5 @@
 import boto3
-import argparse, sys
+import argparse
 
 parser=argparse.ArgumentParser()
 

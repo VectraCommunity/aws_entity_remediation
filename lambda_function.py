@@ -1,6 +1,6 @@
 import boto3
 import os
-
+import time
 
 def lambda_handler(event, context):
     try:
@@ -167,6 +167,11 @@ def _remediate_ec2(entity, sts):
                 securityGroupId = _remediate_ec2_createSecurityGroupUntrackConnections(untrack_connections_sg, untrack_connections_sg_desc, vpcId, client)
             print(f"Modifying Instance {entity['entity_value']} with incident response isolation untracking connections security Group: {securityGroupId}")
             _remediate_ec2_modifyInstanceAttribute(entity['entity_value'], securityGroupId, client)
+
+
+            #wait before associating the EC2 instance with isolation sg. Improve chances of attackers generating network traffic.
+            #converting tracked to untracked connections requires active network traffic.  
+            time.sleep(60)
 
             securityGroupsInVpc = client.describe_security_groups(Filters=[{'Name': 'vpc-id','Values': [vpcId]}, {'Name': 'group-name','Values': [isolation_sg]}])['SecurityGroups']
             if securityGroupsInVpc:

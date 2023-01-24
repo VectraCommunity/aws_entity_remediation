@@ -157,7 +157,7 @@ Resources:
                 S3Key: "remediation_lambda_handler.zip"
             Description: ''
             MemorySize: 128
-            Timeout: 60
+            Timeout: 120
             Environment:
               Variables:
                 SNSMessageExternalId: !Ref SnsMessageExternalID
