@@ -9,7 +9,7 @@ parser.add_argument("--external_id", help="User defined enternal id")
 
 args=parser.parse_args()
 
-def publish_entity_for_remediation(sns_topic_arn, sns_message, sns_subject, entity_arn, external_id):
+def publish_entity_for_lockdown(sns_topic_arn, sns_message, sns_subject, entity_arn, external_id):
 
     sns_client = boto3.client("sns")
     attributes={
@@ -35,5 +35,5 @@ def publish_entity_for_remediation(sns_topic_arn, sns_message, sns_subject, enti
     except:
         raise
 
-publish_entity_for_remediation(args.sns_topic_arn, '(message) entity for AWS incident response', '(subject) entity for AWS incident response', args.entity_arn, args.external_id)
+publish_entity_for_lockdown(args.sns_topic_arn, '(message) entity for AWS incident response', '(subject) entity for AWS incident response', args.entity_arn, args.external_id)
 

@@ -1,92 +1,92 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Template to deploy resources for Vectra's AWS entity remediation solution.
+Description: Template to deploy resources for AWS entity lockdown solution.
 
 Parameters:
-  VectraRemediationLambdaName:
+  EntityLockdownLambdaName:
     Type: String
-    Description: 'Name assigned to Vectra remediation AWS Lambda function'
-    Default: 'vectra-remediation-function'
-  VectraRemediationSnsTopic:
+    Description: 'Name assigned to entity lockdown AWS Lambda function'
+    Default: 'entity-lockdown-function'
+  EntityLockdownSnsTopic:
     Type: String
-    Description: 'Name assigned to Vectra remediation AWS SNS topic'
-    Default: 'vectra-remediation-sns-topic'
-  VectraRemediationAuditSnsTopic:
+    Description: 'Name assigned to entity lockdown AWS SNS topic'
+    Default: 'entity-lockdown-sns-topic'
+  EntityLockdownAuditSnsTopic:
     Type: String
-    Description: 'Name assigned to Vectra remediation audit AWS SNS topic'
-    Default: 'vectra-remediation-audit-sns-topic'
-  VectraRemediationFailureSnsTopic:
+    Description: 'Name assigned to entity lockdown audit AWS SNS topic'
+    Default: 'entity-lockdown-audit-sns-topic'
+  EntityLockdownFailureSnsTopic:
     Type: String
-    Description: 'Name assigned to Vectra remediation failure AWS SNS topic'
-    Default: 'vectra-remediation-failure-sns-topic'
-  SnsMessageExternalID:
+    Description: 'Name assigned to entity lockdown failure AWS SNS topic'
+    Default: 'entity-lockdown-failure-sns-topic'
+  EntityLockdownSnsMessageExternalID:
     Type: String
     MinLength: 9
-    Description: 'Extrenal ID to validate remediation SNS message. 9 characters long'
-  VectraRemediationAuditSnsTopicSubscriptionEmail:
+    Description: 'Extrenal ID to validate entity lockdown SNS message. 9 characters long'
+  EntityLockdownAuditSnsTopicSubscriptionEmail:
     Type: String
     AllowedPattern: '[^@]+@[^@]+\.[^@]+'
-    Description: 'Email address to receive remediation notifications'
-  VectraRemediationFailureSnsTopicSubscriptionEmail:
+    Description: 'Email address to receive entity lockdown notifications'
+  EntityLockdownFailureSnsTopicSubscriptionEmail:
     Type: String
     AllowedPattern: '[^@]+@[^@]+\.[^@]+'
-    Description: 'Email address to receive remediation failure notifications'
+    Description: 'Email address to receive entity lockdown failure notifications'
 Resources:
-    RemediationTopic:
+    EntityLockdownTopic:
         Type: 'AWS::SNS::Topic'
         Properties:
-            DisplayName: !Sub 'Vectra Entity Remediation Topic'
-            TopicName: !Ref VectraRemediationSnsTopic
+            DisplayName: !Sub 'Entity Lockdown Topic'
+            TopicName: !Ref EntityLockdownSnsTopic
             Subscription:
                 - Protocol: lambda
-                  Endpoint: !GetAtt RemediationLambda.Arn
-    RemediationAuditTopic:
+                  Endpoint: !GetAtt EntityLockdownLambda.Arn
+    EntityLockdownAuditTopic:
         Type: 'AWS::SNS::Topic'
         Properties:
-            DisplayName: !Sub 'Vectra Entity Remediation Audit'
-            TopicName: !Ref VectraRemediationAuditSnsTopic
-    RemediationFailureTopic:
+            DisplayName: !Sub 'Entity Lockdown Audit'
+            TopicName: !Ref EntityLockdownAuditSnsTopic
+    EntityLockdownFailureTopic:
         Type: 'AWS::SNS::Topic'
         Properties:
-            DisplayName: !Sub 'Vectra Entity Remediation Failure'
-            TopicName: !Ref VectraRemediationFailureSnsTopic
-    RemediationAuditTopicSubscription:
+            DisplayName: !Sub 'Entity Lockdown Failure'
+            TopicName: !Ref EntityLockdownFailureSnsTopic
+    EntityLockdownAuditTopicSubscription:
       Type: AWS::SNS::Subscription
       Properties:
-        Endpoint: !Ref VectraRemediationAuditSnsTopicSubscriptionEmail
+        Endpoint: !Ref EntityLockdownAuditSnsTopicSubscriptionEmail
         Protocol: email
-        TopicArn: !Ref 'RemediationAuditTopic'
-    RemediationFailureTopicSubscription:
+        TopicArn: !Ref 'EntityLockdownAuditTopic'
+    EntityLockdownFailureTopicSubscription:
       Type: AWS::SNS::Subscription
       Properties:
-        Endpoint: !Ref VectraRemediationFailureSnsTopicSubscriptionEmail
+        Endpoint: !Ref EntityLockdownFailureSnsTopicSubscriptionEmail
         Protocol: email
-        TopicArn: !Ref 'RemediationFailureTopic'
-    RemediationLambdaInvokePermission:
+        TopicArn: !Ref 'EntityLockdownFailureTopic'
+    EntityLockdownLambdaInvokePermission:
         Type: 'AWS::Lambda::Permission'
         Properties:
           Action: 'lambda:InvokeFunction'
-          FunctionName: !Ref RemediationLambda
+          FunctionName: !Ref EntityLockdownLambda
           Principal: sns.amazonaws.com
-    RemediationTopicPolicy:
+    EntityLockdownTopicPolicy:
         Type: 'AWS::SNS::TopicPolicy'
         Properties:
             Topics:
-                - !Ref RemediationTopic
+                - !Ref EntityLockdownTopic
             PolicyDocument:
                 Version: '2012-10-17'
                 Statement:
                 - Effect: Allow
                   Action: 'sns:Publish'
-                  Resource: !Ref RemediationTopic
+                  Resource: !Ref EntityLockdownTopic
                   Principal:
                     AWS: '*'
                   Condition:
                     ArnLike:
                         AWS:SourceArn: !Sub 'arn:aws:*:*:${AWS::AccountId}:*'
-    RemediationLambdaExecutionRole:
+    EntityLockdownLambdaExecutionRole:
         Type: 'AWS::IAM::Role'
         Properties:
-            RoleName: 'VectraRemediationLambdaExecutionRole'
+            RoleName: 'EntityLockdownLambdaExecutionRole'
             AssumeRolePolicyDocument:
                 Version: '2012-10-17'
                 Statement:
@@ -99,7 +99,7 @@ Resources:
             ManagedPolicyArns:
                 - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
             Policies:
-              - PolicyName: VectraRolePolicyForRemediationLambda
+              - PolicyName: RolePolicyForEntityLockdownLambda
                 PolicyDocument: 
                     Version: '2012-10-17'
                     Statement:
@@ -111,75 +111,75 @@ Resources:
                         Action:
                           - sns:Publish
                         Resource: 
-                          - !Sub ${RemediationAuditTopic.TopicArn}
-                          - !Sub ${RemediationFailureTopic.TopicArn}
-    RemediationAuditTopicPolicy:
+                          - !Sub ${EntityLockdownAuditTopic.TopicArn}
+                          - !Sub ${EntityLockdownFailureTopic.TopicArn}
+    EntityLockdownAuditTopicPolicy:
         Type: 'AWS::SNS::TopicPolicy'
         Properties:
             Topics:
-                - !Ref RemediationAuditTopic
+                - !Ref EntityLockdownAuditTopic
             PolicyDocument:
                 Version: '2012-10-17'
                 Statement:
                 - Effect: Allow
                   Action: 'sns:Publish'
-                  Resource: !Ref RemediationAuditTopic
+                  Resource: !Ref EntityLockdownAuditTopic
                   Principal:
                     Service: lambda.amazonaws.com
                   Condition:
                     ArnLike:
-                        AWS:SourceArn: !Sub ${RemediationLambdaExecutionRole.Arn}
-    RemediationFailureTopicPolicy:
+                        AWS:SourceArn: !Sub ${EntityLockdownLambdaExecutionRole.Arn}
+    EntityLockdownFailureTopicPolicy:
         Type: 'AWS::SNS::TopicPolicy'
         Properties:
             Topics:
-                - !Ref RemediationFailureTopic
+                - !Ref EntityLockdownFailureTopic
             PolicyDocument:
                 Version: '2012-10-17'
                 Statement:
                 - Effect: Allow
                   Action: 'sns:Publish'
-                  Resource: !Ref RemediationFailureTopic
+                  Resource: !Ref EntityLockdownFailureTopic
                   Principal:
                     Service: lambda.amazonaws.com
                   Condition:
                     ArnLike:
-                        AWS:SourceArn: !Sub ${RemediationLambdaExecutionRole.Arn}
-    RemediationLambda:
+                        AWS:SourceArn: !Sub ${EntityLockdownLambdaExecutionRole.Arn}
+    EntityLockdownLambda:
         Type: 'AWS::Lambda::Function'
         Properties:
-            FunctionName: !Ref VectraRemediationLambdaName
+            FunctionName: !Ref EntityLockdownLambdaName
             Handler: lambda_function.lambda_handler
             Runtime: python3.9
-            Role: !Sub ${RemediationLambdaExecutionRole.Arn}
+            Role: !Sub ${EntityLockdownLambdaExecutionRole.Arn}
             Code:
-                S3Bucket: "dev-remediation"
-                S3Key: "remediation_lambda_handler.zip"
+                S3Bucket: "aws-entity-incident-response"
+                S3Key: "entity_lockdown_lambda_handler.zip"
             Description: ''
             MemorySize: 128
             Timeout: 120
             Environment:
               Variables:
-                SNSMessageExternalId: !Ref SnsMessageExternalID
-                VectraRoleForRemediationLambda: 'VectraRoleForRemediationLambdaFunction'
-                VectraAuditRemediationSnsTopic:  !GetAtt RemediationAuditTopic.TopicArn
+                EntityLockdownSNSMessageExternalId: !Ref EntityLockdownSnsMessageExternalID
+                RoleForEntityLockdownLambda: 'RoleForEntityLockdownLambdaFunction'
+                AuditEntityLockdownSnsTopic:  !GetAtt EntityLockdownAuditTopic.TopicArn
             DeadLetterConfig:
-              TargetArn: !GetAtt RemediationFailureTopic.TopicArn
-    VectraRoleForRemediationLambda:
+              TargetArn: !GetAtt EntityLockdownFailureTopic.TopicArn
+    RoleForEntityLockdownLambda:
         Type: 'AWS::IAM::Role'
         Properties:
-            RoleName: 'VectraRoleForRemediationLambdaFunction'
+            RoleName: 'RoleForEntityLockdownLambdaFunction'
             AssumeRolePolicyDocument:
                 Version: '2012-10-17'
                 Statement:
                     - Effect: Allow
                       Principal:
                         AWS:
-                          - !Sub ${RemediationLambdaExecutionRole.Arn}
+                          - !Sub ${EntityLockdownLambdaExecutionRole.Arn}
                       Action:
                         - sts:AssumeRole
             Policies:
-              - PolicyName: VectraRolePolicyForEntityRemediationLambdaFunction
+              - PolicyName: RolePolicyForEntityLockdownLambdaFunction
                 PolicyDocument: 
                     Version: '2012-10-17'
                     Statement:
@@ -213,21 +213,21 @@ Resources:
                           - !Sub "arn:aws:iam::${AWS::AccountId}:role/*"
                           - !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
 Outputs:
-  RemediationTopicName:
-    Description: The Vectra remediation SNS topic name
-    Value: !GetAtt RemediationTopic.TopicName
-  RemediationLambdaName:
-    Description: The Vectra remediation Lambda function name
-    Value: !Ref VectraRemediationLambdaName
-  RemediationLambdaExecutionRoleArn:
-    Description: The Vectra remediation Lambda execution role arn
-    Value: !GetAtt RemediationLambdaExecutionRole.Arn
-  RemediationAuditRemediationSnsTopicName:
-    Description: The Vectra remediation audit SNS topic name
-    Value: !GetAtt RemediationAuditTopic.TopicName
-  RemediationAuditRemediationSnsTopicName:
-    Description: The Vectra remediation failure SNS topic name
-    Value: !GetAtt RemediationFailureTopic.TopicName
-  VectraRoleForRemediationLambdaName:
-    Description: The Vectra IAM Role assumed by Remediation Lambda 
-    Value: 'VectraRoleForRemediationLambdaFunction'
+  EntityLockdownTopicName:
+    Description: The Entity Lockdown SNS topic name
+    Value: !GetAtt EntityLockdownTopic.TopicName
+  EntityLockdownLambdaName:
+    Description: The Entity Lockdown Lambda function name
+    Value: !Ref EntityLockdownLambdaName
+  EntityLockdownLambdaExecutionRoleArn:
+    Description: The Entity Lockdown Lambda execution role arn
+    Value: !GetAtt EntityLockdownLambdaExecutionRole.Arn
+  EntityLockdownAuditSnsTopicName:
+    Description: The Entity Lockdown audit SNS topic name
+    Value: !GetAtt EntityLockdownAuditTopic.TopicName
+  EntityLockdownAuditSnsTopicName:
+    Description: The Entity Lockdown failure SNS topic name
+    Value: !GetAtt EntityLockdownFailureTopic.TopicName
+  RoleForEntityLockdownLambdaName:
+    Description: The IAM Role assumed by Entity Lockdown Lambda 
+    Value: 'RoleForEntityLockdownLambdaFunction'

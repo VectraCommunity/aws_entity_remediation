@@ -1,27 +1,27 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Template to deploy resources for Vectra's AWS entity remediation solution - AWS cross account access.
+Description: Template to deploy resources for AWS entity lockdown solution - AWS cross account access.
 
 Parameters:
-  VectraRemediationLambdaHostAccount:
+  EntityLockdownLambdaHostAccount:
     Type: Number
-    Description: "AWS account number for Vectra's remediation AWS Lambda function"
+    Description: "AWS account number for entity lockdown AWS Lambda function"
 
 Resources:
-  VectraRoleForRemediationLambda:
+  RoleForEntityLockdownLambda:
         Type: 'AWS::IAM::Role'
         Properties:
-            RoleName: 'VectraRoleForRemediationLambdaFunction'
+            RoleName: 'RoleForEntityLockdownLambdaFunction'
             AssumeRolePolicyDocument:
                 Version: '2012-10-17'
                 Statement:
                     - Effect: Allow
                       Principal:
                         AWS:
-                          - !Sub "arn:aws:iam::${VectraRemediationLambdaHostAccount}:role/VectraRemediationLambdaExecutionRole"
+                          - !Sub "arn:aws:iam::${EntityLockdownLambdaHostAccount}:role/EntityLockdownLambdaExecutionRole"
                       Action:
                         - sts:AssumeRole
             Policies:
-              - PolicyName: VectraRolePolicyForEntityRemediationLambdaFunction
+              - PolicyName: RolePolicyForEntityLockdownLambdaFunction
                 PolicyDocument: 
                     Version: '2012-10-17'
                     Statement:

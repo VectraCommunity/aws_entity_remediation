@@ -7,29 +7,29 @@ def lambda_handler(event, context):
         arn = event['Records'][0]['Sns']['MessageAttributes']['Arn']['Value']
         external_id = event['Records'][0]['Sns']['MessageAttributes']['ExternalId']['Value']
 
-        if external_id != os.environ['SNSMessageExternalId']:
-            raise Exception(f"Remediation SNS ExteranlId: {external_id} mismatch")
+        if external_id != os.environ['EntityLockdownSNSMessageExternalId']:
+            raise Exception(f"Entity Lockdown SNS ExteranlId: {external_id} mismatch")
         
-        _audit_remediation("Started", arn) 
+        _audit_entity_lockdown("Started", arn) 
 
         entity = _parse_message(arn)
         sts = _assume_role(entity['entity_account_id'])
 
         if(entity['entity_type'] == 'lambda'):
-            _remediate_lambda(entity, sts)
+            _entity_lockdown_lambda(entity, sts)
         elif entity['entity_type'] == 'user':
-            _remediate_iam(entity, sts)
+            _entity_lockdown_iam(entity, sts)
         elif entity['entity_type'] == 'ec2':
-            _remediate_ec2(entity, sts)
+            _entity_lockdown_ec2(entity, sts)
         elif entity['entity_type'] == 'role':
-            _remediate_role(entity, sts)
+            _entity_lockdown_role(entity, sts)
      
-        _audit_remediation("Complete", arn)
+        _audit_entity_lockdown("Complete", arn)
         
     except Exception as e:
         print(e)
         message = f"{arn} - with error: {e}" 
-        _audit_remediation("Failed", message)
+        _audit_entity_lockdown("Failed", message)
       
     return {
         "statusCode": 200
@@ -53,7 +53,7 @@ def _parse_message(arn):
         entity_region = arn.split(':')[3]
         entity_type = arn.split(':')[2]
     else:
-        raise Exception(f"AWS entity {entity_type} is not supported for remediation")
+        raise Exception(f"AWS entity {entity_type} is not supported for entity lockdown")
 
     entity = {
         'entity_type':entity_type,
@@ -64,7 +64,7 @@ def _parse_message(arn):
 
     return entity
 
-def _remediate_lambda(entity, sts):
+def _entity_lockdown_lambda(entity, sts):
     p_arn = 'arn:aws:iam::aws:policy/AWSDenyAll'
 
     try:
@@ -87,7 +87,7 @@ def _remediate_lambda(entity, sts):
         print(e)
         raise e
     
-def _remediate_iam(entity, sts):
+def _entity_lockdown_iam(entity, sts):
     p_arn = 'arn:aws:iam::aws:policy/AWSDenyAll'
     try:
         client = boto3.client('iam', aws_access_key_id = sts['aws_access_key_id'],
@@ -100,7 +100,7 @@ def _remediate_iam(entity, sts):
         print(e)
         raise e
 
-def _remediate_role(entity, sts):
+def _entity_lockdown_role(entity, sts):
     p_arn = 'arn:aws:iam::aws:policy/AWSDenyAll'
     
     try:
@@ -121,7 +121,7 @@ def _remediate_role(entity, sts):
 def _assume_role(account_id):
     sts_connection = boto3.client('sts')
     sts = sts_connection.assume_role(
-        RoleArn=f"arn:aws:iam::{account_id}:role/{os.environ['VectraRoleForRemediationLambda']}",
+        RoleArn=f"arn:aws:iam::{account_id}:role/{os.environ['RoleForEntityLockdownLambda']}",
         RoleSessionName="cross_acct_lambda"
     )
     
@@ -136,10 +136,10 @@ def _assume_role(account_id):
  
     return sts
 
-def _remediate_ec2(entity, sts):
-    untrack_connections_sg = 'vectra-incident-response-isolation-untrack-connections-sg'
+def _entity_lockdown_ec2(entity, sts):
+    untrack_connections_sg = 'incident-response-isolation-untrack-connections-sg'
     untrack_connections_sg_desc = 'Security Group used for incident response isolation untracking connections'
-    isolation_sg = 'vectra-incident-response-isolation-sg' 
+    isolation_sg = 'incident-response-isolation-sg' 
     isolation_sg_desc = 'Security Group used for incident response isolation' 
 
     try:
@@ -157,16 +157,16 @@ def _remediate_ec2(entity, sts):
                 client.disassociate_iam_instance_profile(AssociationId=AssociationId)
                 print("Disassociated IAM Role for EC2 Instance: ", entity['entity_value'])
 
-        vpcId = _remediate_ec2_identifyInstanceVpcId(entity['entity_value'], client)
+        vpcId = _entity_lockdown_ec2_identifyInstanceVpcId(entity['entity_value'], client)
 
         try:
             securityGroupsInVpc = client.describe_security_groups(Filters=[{'Name': 'vpc-id','Values': [vpcId]}, {'Name': 'group-name','Values': [untrack_connections_sg]}])['SecurityGroups']
             if securityGroupsInVpc:
                 securityGroupId = securityGroupsInVpc[0]['GroupId']
             else:
-                securityGroupId = _remediate_ec2_createSecurityGroupUntrackConnections(untrack_connections_sg, untrack_connections_sg_desc, vpcId, client)
+                securityGroupId = _entity_lockdown_ec2_createSecurityGroupUntrackConnections(untrack_connections_sg, untrack_connections_sg_desc, vpcId, client)
             print(f"Modifying Instance {entity['entity_value']} with incident response isolation untracking connections security Group: {securityGroupId}")
-            _remediate_ec2_modifyInstanceAttribute(entity['entity_value'], securityGroupId, client)
+            _entity_lockdown_ec2_modifyInstanceAttribute(entity['entity_value'], securityGroupId, client)
 
 
             #wait before associating the EC2 instance with isolation sg. Improve chances of attackers generating network traffic.
@@ -177,9 +177,9 @@ def _remediate_ec2(entity, sts):
             if securityGroupsInVpc:
                 securityGroupId = securityGroupsInVpc[0]['GroupId']
             else:
-                securityGroupId = _remediate_ec2_createSecurityGroup(isolation_sg, isolation_sg_desc, vpcId, client)
+                securityGroupId = _entity_lockdown_ec2_createSecurityGroup(isolation_sg, isolation_sg_desc, vpcId, client)
             print(f"Modifying Instance {entity['entity_value']} with incident response isolation security Group: {securityGroupId}")
-            _remediate_ec2_modifyInstanceAttribute(entity['entity_value'], securityGroupId, client)
+            _entity_lockdown_ec2_modifyInstanceAttribute(entity['entity_value'], securityGroupId, client)
 
             print("Complete: Incident Response Isolation for entity type: EC2")
 
@@ -190,36 +190,36 @@ def _remediate_ec2(entity, sts):
         print(e)
         raise e
         
-def _remediate_ec2_identifyInstanceVpcId(instanceId, client):
+def _entity_lockdown_ec2_identifyInstanceVpcId(instanceId, client):
     instanceReservations = client.describe_instances(InstanceIds=[instanceId])['Reservations']
     for instanceReservation in instanceReservations:
         instancesDescription = instanceReservation['Instances']
         for instance in instancesDescription:
             return instance['VpcId']
 
-def _remediate_ec2_createSecurityGroup(groupName, descriptionString, vpcId, client):
+def _entity_lockdown_ec2_createSecurityGroup(groupName, descriptionString, vpcId, client):
     securityGroupId = client.create_security_group(GroupName=groupName, Description=descriptionString, VpcId=vpcId)
     client.revoke_security_group_egress(GroupId = securityGroupId['GroupId'], IpPermissions= [{'IpProtocol': '-1','IpRanges': [{'CidrIp': '0.0.0.0/0'}],'Ipv6Ranges': [],'PrefixListIds': [],'UserIdGroupPairs': []}])
     client.revoke_security_group_ingress(GroupId = securityGroupId['GroupId'], IpPermissions= [{'IpProtocol': '-1','IpRanges': [{'CidrIp': '0.0.0.0/0'}],'Ipv6Ranges': [],'PrefixListIds': [],'UserIdGroupPairs': []}])
     return securityGroupId['GroupId'] 
 
-def _remediate_ec2_createSecurityGroupUntrackConnections(groupName, descriptionString, vpcId, client):
+def _entity_lockdown_ec2_createSecurityGroupUntrackConnections(groupName, descriptionString, vpcId, client):
     securityGroupId = client.create_security_group(GroupName=groupName, Description=descriptionString, VpcId=vpcId)
     client.authorize_security_group_ingress(GroupId = securityGroupId['GroupId'], IpPermissions= [{'IpProtocol': '-1','IpRanges': [{'CidrIp': '0.0.0.0/0'}],'Ipv6Ranges': [],'PrefixListIds': [],'UserIdGroupPairs': []}])
     return securityGroupId['GroupId'] 
 
-def _remediate_ec2_modifyInstanceAttribute(instanceId,securityGroupId, client):
+def _entity_lockdown_ec2_modifyInstanceAttribute(instanceId,securityGroupId, client):
     client.modify_instance_attribute(
         Groups=[securityGroupId],
         InstanceId=instanceId)
 
-def _audit_remediation(status, message):
+def _audit_entity_lockdown(status, message):
     print(message)
     sns_client = boto3.client("sns")
-    sns_topic = os.environ['VectraAuditRemediationSnsTopic']
+    sns_topic = os.environ['AuditEntityLockdownSnsTopic']
     topic_arn = sns_topic
-    message = f"Vectra entity remediation status: {status}. Details: {message}"
-    subject = 'Vectra Remediation Notification'
+    message = f"Entity Lockdown status: {status}. Details: {message}"
+    subject = 'Entity Lockdown Notification'
    
     try:
         sns_client.publish(
