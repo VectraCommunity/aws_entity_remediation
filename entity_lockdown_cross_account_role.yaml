@@ -31,7 +31,6 @@ Resources:
                           - ec2:AuthorizeSecurityGroupIngress 
                           - ec2:RevokeSecurityGroupIngress 
                           - ec2:RevokeSecurityGroupEgress 
-                          - ec2:DisassociateIamInstanceProfile 
                           - lambda:GetFunctionConfiguration 
                           - lambda:PutFunctionConcurrency
                         Resource: 
@@ -51,8 +50,14 @@ Resources:
                         Action:
                           - iam:AttachUserPolicy
                           - iam:AttachRolePolicy
+                          - iam:PutRolePolicy
                         Resource:
                           - !Sub "arn:aws:iam::${AWS::AccountId}:role/*"
                           - !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+                      - Effect: Allow
+                        Action:
+                          - iam:GetInstanceProfile
+                        Resource:
+                          - !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/*"
 
 

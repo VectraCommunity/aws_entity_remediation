@@ -1,6 +1,7 @@
 import boto3
 import os
 import time
+import json
 
 def lambda_handler(event, context):
     try:
@@ -151,11 +152,9 @@ def _entity_lockdown_ec2(entity, sts):
         IamInstanceProfileAssociations = client.describe_iam_instance_profile_associations(Filters=[{'Name': 'instance-id','Values': [entity['entity_value']]}])['IamInstanceProfileAssociations']
         if len(IamInstanceProfileAssociations) > 0:
             for associatedIamRole in IamInstanceProfileAssociations:
-                AssociationId = associatedIamRole['AssociationId']
                 IamInstanceProfileArn = associatedIamRole['IamInstanceProfile']['Arn']
-                print("Current IAM Instance Profile: ", IamInstanceProfileArn)
-                client.disassociate_iam_instance_profile(AssociationId=AssociationId)
-                print("Disassociated IAM Role for EC2 Instance: ", entity['entity_value'])
+                InstanceProfileName = IamInstanceProfileArn.split('/')[1]
+                _entity_lockdown_ec2_attach_denyall_policy(entity, sts, InstanceProfileName)
 
         vpcId = _entity_lockdown_ec2_identifyInstanceVpcId(entity['entity_value'], client)
 
@@ -189,7 +188,35 @@ def _entity_lockdown_ec2(entity, sts):
     except Exception as e:
         print(e)
         raise e
-        
+
+def _entity_lockdown_ec2_attach_denyall_policy(entity, sts, InstanceProfileName):
+    client = boto3.client('iam', region_name=entity['entity_region'], aws_access_key_id = sts['aws_access_key_id'], aws_secret_access_key = sts['aws_secret_access_key'],
+                aws_session_token = sts['aws_session_token'])
+    InstanceProfile = client.get_instance_profile(InstanceProfileName=InstanceProfileName)
+    for role in InstanceProfile['InstanceProfile']['Roles']:
+        print("Current IAM Instance Profile: ", InstanceProfileName)
+        role_name =  role['RoleName']
+        arn = f"arn:aws:ec2:{entity['entity_region']}:{entity['entity_account_id']}:instance/{entity['entity_value']}"
+        policy_name= f"Incident_Reponse_lockdown_EC2_Instance_Id_{entity['entity_value']}"
+
+        policy_doc = {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Deny",
+                    "Action": "*",
+                    "Resource": "*",
+                    "Condition": {
+                    "StringEquals": {
+                        "ec2:SourceInstanceARN": arn
+                    } 
+                } 
+            }]
+        }
+
+        client.put_role_policy(RoleName=role_name, PolicyName=policy_name, PolicyDocument=json.dumps(policy_doc))
+        print("Attach DenyAll policy to Instance profile IAM Role: ", role_name) 
+
 def _entity_lockdown_ec2_identifyInstanceVpcId(instanceId, client):
     instanceReservations = client.describe_instances(InstanceIds=[instanceId])['Reservations']
     for instanceReservation in instanceReservations:
@@ -200,7 +227,6 @@ def _entity_lockdown_ec2_identifyInstanceVpcId(instanceId, client):
 def _entity_lockdown_ec2_createSecurityGroup(groupName, descriptionString, vpcId, client):
     securityGroupId = client.create_security_group(GroupName=groupName, Description=descriptionString, VpcId=vpcId)
     client.revoke_security_group_egress(GroupId = securityGroupId['GroupId'], IpPermissions= [{'IpProtocol': '-1','IpRanges': [{'CidrIp': '0.0.0.0/0'}],'Ipv6Ranges': [],'PrefixListIds': [],'UserIdGroupPairs': []}])
-    client.revoke_security_group_ingress(GroupId = securityGroupId['GroupId'], IpPermissions= [{'IpProtocol': '-1','IpRanges': [{'CidrIp': '0.0.0.0/0'}],'Ipv6Ranges': [],'PrefixListIds': [],'UserIdGroupPairs': []}])
     return securityGroupId['GroupId'] 
 
 def _entity_lockdown_ec2_createSecurityGroupUntrackConnections(groupName, descriptionString, vpcId, client):
@@ -214,7 +240,7 @@ def _entity_lockdown_ec2_modifyInstanceAttribute(instanceId,securityGroupId, cli
         InstanceId=instanceId)
 
 def _audit_entity_lockdown(status, message):
-    print(message)
+    print(f"Entity Lockdown status: {status}. Details: {message}")
     sns_client = boto3.client("sns")
     sns_topic = os.environ['AuditEntityLockdownSnsTopic']
     topic_arn = sns_topic
