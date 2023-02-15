@@ -40,7 +40,7 @@ Download the CloudFormation template from [Amazon S3](https://aws-entity-inciden
 ![High Level](https://aws-entity-incident-response.s3.amazonaws.com/HighLeveArchitecture.PNG)
 
 #### Detail level overview
-![Detial Level](https://aws-entity-incident-response.s3.amazonaws.com/DetailLevelArchitecure.PNG)
+![Detial Level](https://aws-entity-incident-response.s3.amazonaws.com/DetailLevelArchitecureV3.PNG)
 
 
 
