@@ -209,7 +209,7 @@ def _entity_lockdown_ec2_attach_denyall_policy(entity, sts, InstanceProfileName)
                     "Condition": {
                     "StringEquals": {
                         "ec2:SourceInstanceARN": arn
-                    } 
+                    }
                 } 
             }]
         }
