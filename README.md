@@ -1,4 +1,4 @@
-# AWSEntityIncidentResponse 
+# AWS Incident Response 
 
 AWSEntityIncidentResponse is an `automated entity lockdown solution for an AWS incident` that allows `security responders` to do `forensics, eradication, and recovery during an Incident.`
 
@@ -18,7 +18,7 @@ Before you begin, ensure you have met the following requirements:
 
 
 
-## Installing AWSEntityIncidentResponse
+## Installing AWS Incident Response
 To install AWSEntityIncidentResponse, follow these steps:
 
 #### Deploy the Incident Response solution AWS resources:
@@ -119,4 +119,5 @@ This stack will only create one resource. And AWS IAM Role that will give the In
 ![CFNCrossAccountResources](https://aws-entity-incident-response.s3.amazonaws.com/cfn-resourcs-cross-account.PNG)
 
 ## Blog post
-For walkthroughs and full documentation, please visit the AWSEntityIncidentResponse [blog](https://www.vectra.ai/blogpost/your-aws-has-been-breached-now-what).
+For walkthroughs and full documentation, please visit [blog](https://medium.com/@alex.groyz_50998/aws-incident-response-on-the-control-plane-and-network-3ba95b0a8513).
+
