@@ -159,6 +159,17 @@ def _entity_lockdown_ec2(entity, sts):
         vpcId = _entity_lockdown_ec2_identifyInstanceVpcId(entity['entity_value'], client)
 
         try:
+            enis = client.describe_network_interfaces(Filters=[{'Name': 'attachment.instance-id', 'Values': [entity['entity_value']]}])
+
+            for eni in enis['NetworkInterfaces']:
+                eni_id = eni['NetworkInterfaceId']
+                client.modify_network_interface_attribute(
+                    NetworkInterfaceId=eni_id,
+                    ConnectionTrackingSpecification={
+                        'TcpEstablishedTimeout': 300  
+                    }
+                )
+
             securityGroupsInVpc = client.describe_security_groups(Filters=[{'Name': 'vpc-id','Values': [vpcId]}, {'Name': 'group-name','Values': [untrack_connections_sg]}])['SecurityGroups']
             if securityGroupsInVpc:
                 securityGroupId = securityGroupsInVpc[0]['GroupId']
