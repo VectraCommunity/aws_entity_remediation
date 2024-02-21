@@ -166,7 +166,7 @@ def _entity_lockdown_ec2(entity, sts):
                 client.modify_network_interface_attribute(
                     NetworkInterfaceId=eni_id,
                     ConnectionTrackingSpecification={
-                        'TcpEstablishedTimeout': 300  
+                        'TcpEstablishedTimeout': 60  
                     }
                 )
 
@@ -177,7 +177,6 @@ def _entity_lockdown_ec2(entity, sts):
                 securityGroupId = _entity_lockdown_ec2_createSecurityGroupUntrackConnections(untrack_connections_sg, untrack_connections_sg_desc, vpcId, client)
             print(f"Modifying Instance {entity['entity_value']} with incident response isolation untracking connections security Group: {securityGroupId}")
             _entity_lockdown_ec2_modifyInstanceAttribute(entity['entity_value'], securityGroupId, client)
-
 
             #wait before associating the EC2 instance with isolation sg. Improve chances of attackers generating network traffic.
             #converting tracked to untracked connections requires active network traffic.  
